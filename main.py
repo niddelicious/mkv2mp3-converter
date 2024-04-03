@@ -46,10 +46,20 @@ def update_default(key, value, defaults_file="defaults.txt"):
             f.write(f"{key}={value}\n")
 
 
+def clean_path(path: str):
+    try:
+        file_path = path.strip("'\"")
+        return file_path
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 if len(sys.argv) < 2:
-    print("Please drag an MKV file onto this script.")
-    sys.exit(1)
-mkv_file = sys.argv[1]
+    mkv_file = request_new_value("mkv_file", None)
+    mkv_file = clean_path(mkv_file)
+else:
+    mkv_file = sys.argv[1]
 mp3_file = "output.mp3"
 mp3_path = defaults.get("output_dir", "Music")
 mp3_path = request_new_value("output_dir", mp3_path)
@@ -83,15 +93,6 @@ title = parse_track_title(track, genre)
 title = request_new_value("title", title)
 
 cover_image = request_new_value("cover_image", cover_image)
-
-
-def clean_path(path: str):
-    try:
-        file_path = path.strip("'\"")
-        return file_path
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 
 cover_image = clean_path(cover_image)
