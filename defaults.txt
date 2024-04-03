@@ -1,0 +1,8 @@
+title=Default Title
+artist=Default Artist
+album=Default Album
+year=2024
+track=1
+genre=Default Genre
+cover_image=default-cover.png
+output_dir=Music
