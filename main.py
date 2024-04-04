@@ -120,6 +120,14 @@ else:
     print("Could not list audio tracks or no audio tracks available.")
     exit(1)
 
+
+def adjust_audio_track(selected_track):
+    if int(selected_track) > 0:
+        return int(selected_track) - 1
+    else:
+        return 0
+
+
 mp3_file = "output.mp3"
 mp3_path = defaults.get("output_dir", "Music")
 mp3_path = request_new_value("output_dir", mp3_path)
@@ -177,13 +185,15 @@ mp3_file = parse_filename(artist, album, track, genre)
 mp3_filename = parse_path(mp3_path, mp3_file)
 
 
-def extract_convert_trim_to_mp3(mkv_file, mp3_filename):
+def extract_convert_trim_to_mp3(mkv_file, mp3_filename, audio_track=0):
+    audio_track = f"0:a:{adjust_audio_track(audio_track)}"
+
     command = [
         "ffmpeg",  # Change to full path if ffmpeg is not in PATH
         "-i",
         mkv_file,  # Input file
         "-map",
-        "0:a:1",  # Select the second audio track. Change to 0:a:0 for the first.
+        audio_track,  # Select the second audio track. Change to 0:a:0 for the first.
         "-af",
         "silenceremove=start_periods=1:start_duration=1:start_threshold=-60dB:stop_periods=1:stop_duration=1:stop_threshold=-60dB",  # Silence removal filter
         "-b:a",
@@ -240,7 +250,7 @@ def edit_id3_tags(
     mp3.save()
 
 
-extract_convert_trim_to_mp3(mkv_file, mp3_filename)
+extract_convert_trim_to_mp3(mkv_file, mp3_filename, selected_track)
 edit_id3_tags(mp3_filename, title, artist, album, track, year, genre, cover_image)
 
 track = int(track) + 1
