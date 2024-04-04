@@ -1,10 +1,59 @@
 import os
 import sys
 import subprocess
+import json
 from datetime import date
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import MP3
+
+
+def list_audio_tracks(mkv_file):
+    command = [
+        "ffprobe",
+        "-loglevel",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index:stream_tags=title",
+        "-of",
+        "json",
+        mkv_file,
+    ]
+
+    result = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    if result.returncode != 0:
+        print("An error occurred while trying to list audio tracks.")
+        return []
+
+    streams_info = json.loads(result.stdout)
+    audio_tracks = streams_info.get("streams", [])
+
+    if not audio_tracks:
+        print("No audio tracks found.")
+        return []
+
+    for track in audio_tracks:
+        index = track.get("index", "Unknown")
+        title = track.get("tags", {}).get("title", "Unknown")
+        print(f"{index}: {title}")
+
+    return audio_tracks
+
+
+def select_audio_track(audio_tracks):
+    while True:
+        track_number = input("Enter the track number to select (or 'exit' to quit): ")
+        if track_number.lower() == "exit":
+            return None
+        if track_number.isdigit() and any(
+            track for track in audio_tracks if str(track.get("index")) == track_number
+        ):
+            return track_number
+        print("Invalid track number. Please try again.")
 
 
 def request_new_value(key, current_value):
@@ -60,6 +109,17 @@ if len(sys.argv) < 2:
     mkv_file = clean_path(mkv_file)
 else:
     mkv_file = sys.argv[1]
+audio_tracks = list_audio_tracks(mkv_file)
+if audio_tracks:
+    selected_track = select_audio_track(audio_tracks)
+    if selected_track is not None:
+        print(f"You've selected track {selected_track}.")
+    else:
+        print("Exiting without selection.")
+else:
+    print("Could not list audio tracks or no audio tracks available.")
+    exit(1)
+
 mp3_file = "output.mp3"
 mp3_path = defaults.get("output_dir", "Music")
 mp3_path = request_new_value("output_dir", mp3_path)
