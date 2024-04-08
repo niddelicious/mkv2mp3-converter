@@ -1,5 +1,5 @@
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, APIC
+from mutagen.id3 import ID3, APIC, CTOC, CHAP, TIT2, CTOCFlags
 from mutagen.mp3 import MP3
 
 
@@ -14,7 +14,6 @@ class mp3:
         track: str,
         year: str,
         genre: str,
-        cover_image: str,
     ):
 
         # Edit ID3 tags
@@ -29,7 +28,8 @@ class mp3:
         mp3["genre"] = genre
         mp3.save()
 
-        # Embed cover image
+    @staticmethod
+    def embed_cover_image(mp3_filename: str, cover_image: str):
         mp3 = MP3(mp3_filename, ID3=ID3)
         try:
             with open(cover_image, "rb") as albumart:
@@ -56,3 +56,37 @@ class mp3:
         except Exception as e:
             print(f"An error occurred while saving the MP3 file: {e}")
             return False
+
+    @staticmethod
+    def embed_chapters(mp3_filename: str, chapters: list, chapters_list: list):
+        audio = ID3(mp3_filename)
+        audio.add(
+            CTOC(
+                element_id="toc",
+                flags=CTOCFlags.TOP_LEVEL | CTOCFlags.ORDERED,
+                child_element_ids=chapters_list,
+                sub_frames=[
+                    TIT2(text=["Track list"]),
+                ],
+            )
+        )
+
+        for chapter in chapters:
+            try:
+                audio.add(
+                    CHAP(
+                        element_id=chapter["id"],
+                        start_time=chapter["start_timestamp"],
+                        end_time=chapter["end_timestamp"],
+                        sub_frames=[
+                            TIT2(text=[f"{chapter['artist']} - {chapter['title']}"]),
+                        ],
+                    )
+                )
+            except Exception as e:
+                print(f"An error occurred while adding chapter: {e}")
+
+        try:
+            audio.save()
+        except Exception as e:
+            print(f"An error occurred while saving the MP3 file: {e}")

@@ -44,12 +44,19 @@ title = datahandler.parse_track_title(track, genre)
 title = cli.request_new_value("title", title)
 cover_image = cli.request_new_value("cover_image", cover_image)
 cover_image = datahandler.clean_path(cover_image)
+playlist_file = cli.request_new_value("playlist_file", None)
+playlist_file = datahandler.clean_path(playlist_file)
 mp3_file = datahandler.parse_filename(artist, album, track, genre)
 mp3_filename = datahandler.parse_path(mp3_path, mp3_file)
 
+
 # Convert selected audio track to MP3 and update ID3 tags
 ffmpeg.extract_convert_trim_to_mp3(mkv_file, mp3_filename, selected_track)
-mp3.edit_id3_tags(mp3_filename, title, artist, album, track, year, genre, cover_image)
+mp3.edit_id3_tags(mp3_filename, title, artist, album, track, year, genre)
+mp3.embed_cover_image(mp3_filename, cover_image)
+if playlist_file is not None:
+    chapters, chapters_list = datahandler.parse_playlist(playlist_file)
+    mp3.embed_chapters(mp3_filename, chapters, chapters_list)
 
 # Update defaults with new ID3 tag information
 track = int(track) + 1

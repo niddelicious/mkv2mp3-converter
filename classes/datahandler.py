@@ -1,4 +1,5 @@
 import os
+import re
 
 
 class datahandler:
@@ -61,3 +62,58 @@ class datahandler:
         if track and genre:
             title = f"Episode {track} - {genre}"
         return title
+
+    @staticmethod
+    def parse_playlist(playlist_file):
+        with open(playlist_file, "r") as file:
+            lines = file.readlines()
+            chapters, chapters_list = datahandler.parse_chapters(lines)
+        return chapters, chapters_list
+
+    @staticmethod
+    def parse_playlist_line(timestamp):
+        pattern = re.compile(r"\[(\d{2}):(\d{2}):?(\d{2})?\] (.+)")
+        match = pattern.match(timestamp)
+        if match:
+            hours, minutes, seconds = match.group(1), match.group(2), match.group(3)
+            if seconds is None:  # Format [MM:SS]
+                seconds = minutes
+                minutes = hours
+                hours = 0
+            else:  # Format [HH:MM:SS]
+                hours = int(hours)
+            hours = int(hours)
+            minutes = int(minutes)
+            seconds = int(seconds)
+            timestamp = hours * 3600 + minutes * 60 + seconds
+            timestamp = timestamp * 1000  # Convert to milliseconds
+            artist_title = match.group(4)
+            artist, title = artist_title.split(" - ", 1)
+        return timestamp, artist, title
+
+    @staticmethod
+    def parse_chapters(lines):
+        chapters = []
+        chapters_list = []
+        for i, line in enumerate(lines):
+            start_timestamp, artist, title = datahandler.parse_playlist_line(line)
+
+            # Look ahead for the next track's start timestamp to use as the current track's end timestamp
+            if i + 1 < len(lines):
+                end_timestamp, next_artist, next_title = (
+                    datahandler.parse_playlist_line(lines[i + 1])
+                )
+            else:
+                end_timestamp = None
+            chapters.append(
+                {
+                    "start_timestamp": start_timestamp,
+                    "end_timestamp": end_timestamp,
+                    "artist": artist,
+                    "title": title,
+                    "id": f"trk{i + 1}",
+                }
+            )
+            chapters_list.append(f"trk{i + 1}")
+
+        return chapters, chapters_list
